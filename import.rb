@@ -42,6 +42,18 @@ def assert_directory_exists(directory)
   end
 end
 
+def gsutil_command(path, directory)
+  year = ENV['YEAR']
+  month = ENV['MONTH']
+  wildcard = ''
+
+  if !year.empty? && !month.empty?
+    wildcard = "/*#{year}#{month.rjust(2, '0')}*.csv"
+  end
+
+  "gsutil -m cp -r #{path}#{wildcard} #{directory}"
+end
+
 def import_files(base_directory)
   puts '*********** Starting Import ***********'
   REPORTS.each_with_index do |report, index|
@@ -51,7 +63,7 @@ def import_files(base_directory)
     puts "#{index + 1}. Importing #{report} from #{path} and storing in #{report_directory.light_blue}"
     assert_directory_exists(report_directory)
 
-    cmd = "gsutil -m cp -r #{path} #{base_directory}"
+    cmd = gsutil_command(path, report_directory)
     system(cmd)
   end
   puts '***************************************'

@@ -43,6 +43,8 @@ By default, a folder named "reports" will be created and the data downloaded fro
 
 `DIRECTORY=./new_folder ID=12345678901234567890 ruby import.rb`
 
+If you want to download only files from a specific month and year, read the section Import Mode below.
+
 
 
 2. sql_generator.rb
@@ -56,6 +58,18 @@ To execute it, go to the terminal and run:
 You can use a different folder (it must match the one used on import.rb):
 
 `DIRECTORY=./new_folder ruby sql_generator.rb`
+
+
+Import mode
+==================
+
+The default behavior of the importer is to download all files from the server, which might not be so useful if you intend to run the command every month to retrieve only what is new and relevant.
+
+To change that, you can pass the year and the month on the script call, like this:
+
+`ID=12345678901234567890 YEAR=2015 MONTH=7 ruby import.rb`
+
+It is necessary both year and month to use this method. If one of them is not present, the default mode will still run.
 
 
 Structure
