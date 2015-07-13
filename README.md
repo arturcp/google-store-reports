@@ -37,11 +37,11 @@ Now you are ready to go Let's suppose the id you go on the step above is 1234567
 
 Now, on the terminal, execute:
 
-`ENV['ID']=12345678901234567890 ruby import.rb`
+`ID=12345678901234567890 ruby import.rb`
 
 By default, a folder named "reports" will be created and the data downloaded from Google will be stored in it. It is possible to change the default directory by setting the ENV['DIRECTORY'] on the script call. For example:
 
-`ENV['DIRECTORY']=./new_folder ENV['ID']=12345678901234567890 ruby import.rb`
+`DIRECTORY=./new_folder ID=12345678901234567890 ruby import.rb`
 
 
 
@@ -55,7 +55,7 @@ To execute it, go to the terminal and run:
 
 You can use a different folder (it must match the one used on import.rb):
 
-`ENV['DIRECTORY']=./new_folder ruby sql_generator.rb`
+`DIRECTORY=./new_folder ruby sql_generator.rb`
 
 
 Structure

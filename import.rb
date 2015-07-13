@@ -21,8 +21,10 @@ def welcome_message
 end
 
 def url_prefix
-  @url_prefix ||=
-    "gs://pubsite_prod_rev_%{ENV['ID'] || '00000000000000000000'}/stats/"
+  @url_prefix ||= begin
+    url = "gs://pubsite_prod_rev_%{id}/stats/"
+    url % { id: ENV['ID'] || '00000000000000000000' }
+  end
 end
 
 def directory_message
