@@ -22,7 +22,7 @@ end
 
 def url_prefix
   @url_prefix ||=
-    'gs://pubsite_prod_rev_%{ENV['ID'] || '00000000000000000000'}/stats/'
+    "gs://pubsite_prod_rev_%{ENV['ID'] || '00000000000000000000'}/stats/"
 end
 
 def directory_message
