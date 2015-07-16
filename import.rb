@@ -47,7 +47,7 @@ def gsutil_command(path, directory)
   month = ENV['MONTH']
   wildcard = ''
 
-  if !year.empty? && !month.empty?
+  if year && month
     wildcard = "/*#{year}#{month.rjust(2, '0')}*.csv"
   end
 
