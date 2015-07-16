@@ -1,4 +1,4 @@
-Download statistics data from Google Play using gsutil and ruby scripts.
+Download statistics reports from Google Play using gsutil and ruby scripts.
 
 
 Requirements
