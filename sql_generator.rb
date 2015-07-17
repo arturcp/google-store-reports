@@ -115,3 +115,7 @@ end
 time = Benchmark.realtime do
   start
 end
+
+puts ''
+puts 'Done.'
+puts "Time elapsed #{time} seconds"
