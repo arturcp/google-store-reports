@@ -49,7 +49,7 @@ If you want to download only files from a specific month and year, read the sect
 
 2. sql_generator.rb
 
-This script will read all the files in the given directory and generate a set of insert commands to be run on a database. Just like in the import.rb  file, you can override the default folder with the ENV['DIRECTORY'] parameter.
+This script will read all the files in the given directory and generate a set of insert commands to be run on a database. Just like in the import.rb file, you can override the default folder with the ENV['DIRECTORY'] parameter.
 
 To execute it, go to the terminal and run:
 
