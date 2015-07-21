@@ -9,11 +9,14 @@ DEFAULT_DIRECTORY = './reports'
 REPORTS = ['installs']
 INSERT_IGNORE = 'INSERT IGNORE INTO %{table_name} (%{columns}) VALUES (%{values});'
 INSERT = 'INSERT INTO %{table_name} (%{columns}) VALUES (%{values});'
+UPDATE = 'UPDATE %{table_name} SET icon_path = %{icon_path}, active = %{active}, version = %{version}, last_update = %{last_update} WHERE package_name = %{package_name};'
 
 OUTPUT_FILE_NAME = Time.now.strftime('%Y%m%d%H%M%S%L')
 
 # Leave this variable blank to download all csvs: app_version, carrier, country, device, language, os_version, overview and tablets
 FILTER_BY_REPORT = 'overview'
+
+Product.crawled_products = []
 
 def welcome_message
   puts '+-+-+-+-+-+-+ +-+-+-+-+ +-+-+-+-+-+-+-+'
@@ -73,8 +76,27 @@ def write_to_file(inserts)
   open(filename, "#{file_mode}:UTF-8") { |file| file.write(inserts.join("\n")) }
 end
 
+def write_extra_data_to_file(data)
+  updates = ["-- UPDATE PRODUCTS REPORT"]
+
+  data.each do |product|
+    updates << UPDATE % {
+      table_name: Product.table,
+      icon_path: "'#{product[:icon_path]}'",
+      active: "#{product[:active]}",
+      version: "'#{product[:version]}'",
+      last_update: "'#{product[:last_update]}'",
+      package_name: "'#{product[:package_name]}'"
+    }
+  end
+
+  updates << " \n "
+  write_to_file(updates)
+end
+
 def import_products(imported_file_name, columns, lines)
   inserts = ["-- PRODUCTS REPORT: #{imported_file_name}"]
+  data = []
 
   lines.each do |line|
     line.encode!('UTF-8', 'UTF-16LE', invalid: :replace, undef: :replace, replace: '')
@@ -86,11 +108,17 @@ def import_products(imported_file_name, columns, lines)
 
     if values.length > 1
       inserts << INSERT_IGNORE % { table_name: Product.table, columns: product.columns, values: product.values }
+
+      unless Product.crawled_products.include?(product.package_name)
+        data << product.crawl_data
+        Product.crawled_products << product.package_name
+      end
     end
   end
 
   inserts << " \n "
   write_to_file(inserts)
+  write_extra_data_to_file(data)
 end
 
 def import_sales(imported_file_name, columns, lines)

@@ -1,4 +1,5 @@
-#require_relative 'icon'
+require 'open-uri'
+require_relative 'colors'
 
 class Product
   attr_accessor :product_id, :name, :icon_path, :sku,
@@ -8,6 +9,8 @@ class Product
 
     TABLE = '`dashboard`.`appfigures_products`'
     COLUMNS = %w(product_id name icon_path sku package_name store release_date last_update last_version app_type downloads updates revenue active id_trademark apikey_flurry apikey_flurry2 observation)
+
+    @@crawled_products = {}
 
     def initialize(columns, values)
       hash = Hash[columns.zip(values)]
@@ -55,6 +58,44 @@ class Product
       true
     end
 
+    def crawl_data
+      data = {
+        package_name: self.package_name,
+        icon_path: '',
+        active: false,
+        version: '',
+        last_update: ''
+      }
+
+      begin
+        url = "https://play.google.com/store/apps/details?id=#{package_name}"
+        message = "Fetching extra data from #{url}"
+
+        open(url) do |f|
+          body = f.readlines.join(' ')
+          data[:icon_path] = Product.image_url(body)
+          data[:active] = data[:icon_path].to_s != ''
+          data[:version] = Product.version(body)
+          data[:last_update] = Product.updated_at(body)
+        end
+
+        puts "#{"[success]".green} #{message}"
+      rescue => e
+        puts "#{"[fail]".red} #{message}"
+      end
+
+      data
+    end
+
+    def self.crawled_products
+      @@crawled_products
+    end
+
+    def self.crawled_products=(value)
+      @@crawled_products = value
+    end
+
+
     private
 
     def fields
@@ -63,5 +104,36 @@ class Product
         last_version, app_type, downloads, updates, revenue, active, id_trademark,
         apikey_flurry, apikey_flurry2, observation
       ]
+    end
+
+    def self.image_url(body)
+      regex = /<img class=\"cover-image\" src=\"([\w\:\/\.\-\_\=]+)\" alt=\"Cover art\" aria-hidden=\"true\" itemprop=\"image\">/i
+      body.scan(regex).flatten.first
+    end
+
+    def self.version(body)
+      regex = /<div class=\"content\" itemprop=\"softwareVersion\">([\w\.\s\-]+)<\/div>/
+      body.scan(regex).flatten.first.strip
+    end
+
+    def self.updated_at(body)
+      regex = /<div class=\"content\" itemprop=\"datePublished\">([\w\.\s\-]+)<\/div>/
+      date = body.scan(regex).flatten.first
+      date = date.gsub(/de/, '')
+                 .gsub('janeiro', '/01/')
+                 .gsub('fevereiro', '/02/')
+                 .gsub('março', '/03/')
+                 .gsub('abril', '/04/')
+                 .gsub('maio', '/05/')
+                 .gsub('junho', '/06/')
+                 .gsub('julho', '/07/')
+                 .gsub('agosto', '/08/')
+                 .gsub('setembro', '/09/')
+                 .gsub('outubro', '/10/')
+                 .gsub('novembro', '/11/')
+                 .gsub('dezembro', '/12/')
+                 .gsub(/\s/,'')
+
+      Date.strptime(date, '%d/%m/%Y').strftime("%Y-%m-%d")
     end
 end
