@@ -9,7 +9,9 @@ DEFAULT_DIRECTORY = './reports'
 REPORTS = ['installs']
 INSERT_IGNORE = 'INSERT IGNORE INTO %{table_name} (%{columns}) VALUES (%{values});'
 INSERT = 'INSERT INTO %{table_name} (%{columns}) VALUES (%{values});'
-UPDATE = 'UPDATE %{table_name} SET icon_path = %{icon_path}, active = %{active}, version = %{version}, last_update = %{last_update} WHERE package_name = %{package_name};'
+UPDATE = 'UPDATE %{table_name} SET icon_path = %{icon_path}, active = %{active}, last_version = %{version}, last_update = %{last_update} WHERE package_name = %{package_name};'
+DEACTIVATE = 'UPDATE %{table_name} SET active = false WHERE package_name = %{package_name};'
+DELETE = 'DELETE FROM %{table_name} where YEAR(collected_date) = %{year} and MONTH(collected_date) = %{month};'
 
 OUTPUT_FILE_NAME = Time.now.strftime('%Y%m%d%H%M%S%L')
 
@@ -80,14 +82,21 @@ def write_extra_data_to_file(data)
   updates = ["-- UPDATE PRODUCTS REPORT"]
 
   data.each do |product|
-    updates << UPDATE % {
-      table_name: Product.table,
-      icon_path: "'#{product[:icon_path]}'",
-      active: "#{product[:active]}",
-      version: "'#{product[:version]}'",
-      last_update: "'#{product[:last_update]}'",
-      package_name: "'#{product[:package_name]}'"
-    }
+    if product[:active]
+      updates << UPDATE % {
+        table_name: Product.table,
+        icon_path: "'#{product[:icon_path]}'",
+        active: "#{product[:active]}",
+        version: "'#{product[:version]}'",
+        last_update: "'#{product[:last_update]}'",
+        package_name: "'#{product[:package_name]}'"
+      }
+    else
+      updates << DEACTIVATE % {
+        table_name: Product.table,
+        package_name: "'#{product[:package_name]}'"
+      }
+    end
   end
 
   updates << " \n "
@@ -146,7 +155,8 @@ def update_field_sum(field)
         "  FROM #{Sale.table}" +
         "  GROUP BY product_id" +
         ") s ON s.product_id = p.id" +
-        " SET p.#{field} = s.#{field};"
+        " SET p.#{field} = s.#{field} " +
+        " WHERE p.store = 'Google'; "
 end
 
 def calculate_related_fields
@@ -175,6 +185,29 @@ def import_csv(file)
   # write_to_log("#{e} \n #{e.backtrace}")
 end
 
+def delete_old_sales_data(directory)
+  lines = ['-- DELETE OLD SALES DATA']
+  dates = []
+
+  REPORTS.each do |report|
+    Dir.glob("#{directory}/#{report}/*#{FILTER_BY_REPORT}.csv").each do |csv|
+        parts = csv.split('_')
+        dates << Date.strptime(parts[-2], '%Y%m')
+    end
+  end
+
+  dates.uniq.each do |date|
+    lines << DELETE % {
+      table_name: Sale.table,
+      year: date.year,
+      month: date.month
+    }
+  end
+
+  lines << "\n"
+  write_to_file(lines)
+end
+
 def start
   welcome_message
   directory_message
@@ -185,6 +218,8 @@ def start
   puts ''
 
   directory = ENV['DIRECTORY'] || DEFAULT_DIRECTORY
+  delete_old_sales_data(directory)
+
   REPORTS.each do |report|
     Dir.glob("#{directory}/#{report}/*#{FILTER_BY_REPORT}.csv").each do |csv|
       import_csv(csv)

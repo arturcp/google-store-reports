@@ -48,6 +48,8 @@ class Product
       fields.map do |value|
         if ['true', 'false'].include?(value.to_s)
           value
+        elsif ['nil', ''].include?(value.to_s)
+          'null'
         else
           "'#{value}'"
         end
@@ -82,6 +84,7 @@ class Product
         puts "#{"[success]".green} #{message}"
       rescue => e
         puts "#{"[fail]".red} #{message}"
+        puts e
       end
 
       data
@@ -119,7 +122,7 @@ class Product
     def self.updated_at(body)
       regex = /<div class=\"content\" itemprop=\"datePublished\">([\w\.\s\-]+)<\/div>/
       date = body.scan(regex).flatten.first
-      date = date.gsub(/de/, '')
+      date = date.gsub(/\sde\s/, '')
                  .gsub('janeiro', '/01/')
                  .gsub('fevereiro', '/02/')
                  .gsub('março', '/03/')
