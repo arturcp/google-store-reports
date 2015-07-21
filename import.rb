@@ -6,7 +6,11 @@ require_relative 'colors'
 
 DEFAULT_DIRECTORY = './reports'
 
-REPORTS = ['installs', 'ratings', 'crashes']
+# You can also download reports from 'ratings' and 'crashes'
+REPORTS = ['installs']
+
+# Leave this variable blank to download all csvs: app_version, carrier, country, device, language, os_version, overview and tablets
+FILTER_BY_REPORT = 'overview'
 
 def welcome_message
   puts "+-+-+-+-+-+-+ +-+-+-+-+ +-+-+-+-+-+-+-+-+"
@@ -35,6 +39,18 @@ def directory_message
   end
 end
 
+def required_fields_message
+  unless ENV['ID']
+    puts 'The ID is required to run the script correctly. Check the usage:'
+    puts
+
+    puts "ID=12345678901234567890 ruby import.rb".green
+    puts
+    puts 'In the example above, replace the number 12345678901234567890 with your own id.'
+    abort
+  end
+end
+
 def assert_directory_exists(directory)
   unless File.directory?(directory)
     puts "#{"[Warning]".gray}: #{directory} did not exist and was created"
@@ -48,7 +64,9 @@ def gsutil_command(path, directory)
   wildcard = ''
 
   if year && month
-    wildcard = "/*#{year}#{month.rjust(2, '0')}*.csv"
+    wildcard = "/*#{year}#{month.rjust(2, '0')}*#{FILTER_BY_REPORT}.csv"
+  else
+    wildcard = "/*#{FILTER_BY_REPORT}.csv"
   end
 
   "gsutil -m cp -r #{path}#{wildcard} #{directory}"
@@ -72,6 +90,7 @@ end
 def start
   welcome_message
   directory_message
+  required_fields_message
 
   directory = ENV['DIRECTORY'] || DEFAULT_DIRECTORY
 

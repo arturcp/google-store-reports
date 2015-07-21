@@ -2,11 +2,18 @@ require 'benchmark'
 require 'fileutils'
 
 require_relative 'colors'
+require_relative 'product'
+require_relative 'sale'
 
 DEFAULT_DIRECTORY = './reports'
-REPORTS = ['installs', 'ratings', 'crashes']
+REPORTS = ['installs']
+INSERT_IGNORE = 'INSERT IGNORE INTO %{table_name} (%{columns}) VALUES (%{values});'
 INSERT = 'INSERT INTO %{table_name} (%{columns}) VALUES (%{values});'
+
 OUTPUT_FILE_NAME = Time.now.strftime('%Y%m%d%H%M%S%L')
+
+# Leave this variable blank to download all csvs: app_version, carrier, country, device, language, os_version, overview and tablets
+FILTER_BY_REPORT = 'overview'
 
 def welcome_message
   puts '+-+-+-+-+-+-+ +-+-+-+-+ +-+-+-+-+-+-+-+'
@@ -66,33 +73,78 @@ def write_to_file(inserts)
   open(filename, "#{file_mode}:UTF-8") { |file| file.write(inserts.join("\n")) }
 end
 
+def import_products(imported_file_name, columns, lines)
+  inserts = ["-- PRODUCTS REPORT: #{imported_file_name}"]
+
+  lines.each do |line|
+    line.encode!('UTF-8', 'UTF-16LE', invalid: :replace, undef: :replace, replace: '')
+
+    item = {}
+    values = line.split(',')
+
+    product = Product.new(columns, values)
+
+    if values.length > 1
+      inserts << INSERT_IGNORE % { table_name: Product.table, columns: product.columns, values: product.values }
+    end
+  end
+
+  inserts << " \n "
+  write_to_file(inserts)
+end
+
+def import_sales(imported_file_name, columns, lines)
+  inserts = ["-- SALES REPORT #{imported_file_name}"]
+
+  lines.each do |line|
+    item = {}
+    values = line.split(',')
+
+    sale = Sale.new(columns, values)
+
+    if values.length > 1
+      inserts << INSERT % { table_name: Sale.table, columns: sale.columns, values: sale.values }
+    end
+  end
+
+  inserts << " \n "
+  write_to_file(inserts)
+end
+
+def update_field_sum(field)
+  sql = "UPDATE #{Product.table} p " +
+        "INNER JOIN (" +
+        "  SELECT product_id, SUM(#{field}) as #{field}" +
+        "  FROM #{Sale.table}" +
+        "  GROUP BY product_id" +
+        ") s ON s.product_id = p.id" +
+        " SET p.#{field} = s.#{field};"
+end
+
+def calculate_related_fields
+  inserts = ["-- RELATED VALUES"]
+
+  inserts << update_field_sum('downloads')
+  inserts << update_field_sum('revenue')
+  inserts << update_field_sum('updates')
+  inserts << " \n "
+  write_to_file(inserts)
+end
+
 def import_csv(file)
-    inserts = []
     imported_file_name = file.split('/').last
-    inserts << "-- #{imported_file_name}"
-
     lines = File.open(file, "rb:UTF-16LE") { |f| f.readlines }
-
     columns = lines.shift.encode!('UTF-8', 'UTF-16LE', invalid: :replace, undef: :replace, replace: '').split(',')
 
-    lines.each do |line|
-      line.encode!('UTF-8', 'UTF-16LE', invalid: :replace, undef: :replace, replace: '')
+    import_products(imported_file_name, columns, lines)
+    import_sales(imported_file_name, columns, lines)
 
-      item = {}
-      values = line.split(',')
-
-      if values.length > 1
-        inserts << INSERT % { table_name: 'table_name', columns: format_columns(columns), values: format_values(values) }
-      end
-    end
-    inserts << " \n "
-
-    write_to_file(inserts)
     dots = '.' * (120 - imported_file_name.length).abs
     puts "* #{imported_file_name.light_blue} #{dots} #{"done".green}"
-  rescue => e
-   puts "* #{imported_file_name.light_blue} #{dots} #{"error".red}"
-   write_to_log("#{e} \n #{e.backtrace}")
+    #File.delete(file)
+  #rescue => e
+  # puts "* #{imported_file_name.light_blue} #{dots} #{"error".red}"
+  # write_to_log("#{e} \n #{e.backtrace}")
 end
 
 def start
@@ -106,10 +158,12 @@ def start
 
   directory = ENV['DIRECTORY'] || DEFAULT_DIRECTORY
   REPORTS.each do |report|
-    Dir.glob("#{directory}/#{report}/*.csv").each do |csv|
+    Dir.glob("#{directory}/#{report}/*#{FILTER_BY_REPORT}.csv").each do |csv|
       import_csv(csv)
     end
   end
+
+  calculate_related_fields
 end
 
 time = Benchmark.realtime do

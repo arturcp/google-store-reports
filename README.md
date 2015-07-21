@@ -1,5 +1,7 @@
 Download statistics reports from Google Play using gsutil and ruby scripts.
 
+If you need a tool to download data from the Apple Store, check the project at https://github.com/arturbcc/apple-store-reports
+
 
 Requirements
 ================
@@ -76,3 +78,9 @@ Structure
 ==================
 
 The sql file will, by default, be stored in a directory named "sql". If an error is raised, it will be saved in a log file under the logs directory, which will be created on the run only when needed.
+
+
+Database structure
+==========================
+
+To create the database, we included a mysql script on the project. It is located into the file database_script.sql
