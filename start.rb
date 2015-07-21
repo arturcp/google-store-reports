@@ -17,7 +17,7 @@ end
 def start
   import = "ID=#{ENV['ID']} YEAR=#{ENV['YEAR']} MONTH=#{ENV['MONTH']} ruby import.rb"
   generate_sql = "ruby sql_generator.rb"
-  restore_mysql = ""
+  restore_mysql = "ruby mysql_import.rb"
 
   system(import)
   system(generate_sql)

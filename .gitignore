@@ -2,3 +2,4 @@ reports/
 sql/
 logs/
 prefix.properties
+config.json
