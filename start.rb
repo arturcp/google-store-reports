@@ -1,5 +1,5 @@
 require 'benchmark'
-require_relative 'colors'
+require_relative 'models/colors'
 
 def usage
   puts 'Usage:'

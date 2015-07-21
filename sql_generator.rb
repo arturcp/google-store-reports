@@ -1,9 +1,9 @@
 require 'benchmark'
 require 'fileutils'
 
-require_relative 'colors'
-require_relative 'product'
-require_relative 'sale'
+require_relative 'models/colors'
+require_relative 'models/product'
+require_relative 'models/sale'
 
 DEFAULT_DIRECTORY = './reports'
 REPORTS = ['installs']
@@ -179,10 +179,10 @@ def import_csv(file)
 
     dots = '.' * (120 - imported_file_name.length).abs
     puts "* #{imported_file_name.light_blue} #{dots} #{"done".green}"
-    #File.delete(file)
-  #rescue => e
-  # puts "* #{imported_file_name.light_blue} #{dots} #{"error".red}"
-  # write_to_log("#{e} \n #{e.backtrace}")
+    File.delete(file)
+  rescue => e
+   puts "* #{imported_file_name.light_blue} #{dots} #{"error".red}"
+   write_to_log("#{e} \n #{e.backtrace}")
 end
 
 def delete_old_sales_data(directory)

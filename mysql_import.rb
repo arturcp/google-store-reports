@@ -1,7 +1,7 @@
 require 'fileutils'
 require 'benchmark'
 require 'json'
-require_relative 'colors'
+require_relative 'models/colors'
 
 def start
   path = './config.json'
@@ -13,6 +13,7 @@ def start
       puts "importing #{file.light_blue}"
       cmd = "mysql -u#{config['username']} -p#{config['password']} #{config['database']} < #{file}"
       system(cmd)
+      File.delete(file)
     end
   else
     puts

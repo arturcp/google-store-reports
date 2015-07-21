@@ -2,7 +2,7 @@
 
 require 'fileutils'
 require 'benchmark'
-require_relative 'colors'
+require_relative 'models/colors'
 
 DEFAULT_DIRECTORY = './reports'
 
