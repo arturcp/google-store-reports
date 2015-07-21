@@ -1,5 +1,5 @@
 reports/
 sql/
 logs/
-prefix.properties
+secrets.properties
 config.json
