@@ -4,7 +4,10 @@ require_relative 'models/colors'
 def usage
   puts 'Usage:'
   puts
-  puts ''
+  puts 'ID=12345678901234567890 YEAR=2015 MONTH=7 ruby start.rb'.green
+  puts
+  puts 'All fields are mandatory'
+  puts
 end
 
 def validate_required_fields
