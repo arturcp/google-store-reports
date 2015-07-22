@@ -11,7 +11,12 @@ def start
 
     Dir.glob("./sql/*.sql").each do |file|
       puts "importing #{file.light_blue}"
-      cmd = "mysql -u#{config['username']} -p#{config['password']} #{config['database']} < #{file}"
+      password_parameter = "-p#{config['password']}"
+      if config['password'] == ''
+        password_parameter = ''
+      end
+
+      cmd = "mysql -u#{config['username']} #{password_parameter} #{config['database']} < #{file}"
       system(cmd)
       File.delete(file)
     end
