@@ -18,7 +18,7 @@ time = Benchmark.realtime do
   directory = ''
   directory = "DIRECTORY=#{ENV['DIRECTORY']}" if ENV['DIRECTORY']
 
-  import = "ID=#{ENV['ID']} ruby import.rb"
+  import = "ID=#{ENV['ID']} ruby importer.rb"
   generate_sql = "ruby sql_generator.rb"
   restore_mysql = "ruby mysql_import.rb"
 

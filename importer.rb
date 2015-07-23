@@ -44,7 +44,7 @@ def required_fields_message
     puts 'The ID is required to run the script correctly. Check the usage:'
     puts
 
-    puts "ID=12345678901234567890 ruby import.rb".green
+    puts "ID=12345678901234567890 ruby importer.rb".green
     puts
     puts 'In the example above, replace the number 12345678901234567890 with your own id.'
     abort
