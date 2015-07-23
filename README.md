@@ -68,7 +68,7 @@ After the csv files are converted to sql scripts, you can easily import them to 
 
 `ruby mysql_import.rb`
 
-To make it work, you need to configure your database connection. There is a file on the project called 'config.json.sample'. Rename it to config.json and change the username, password and database information with your database information before you run the script, or a error message will be shown explaining about this json file.
+To make it work, you need to configure your database connection. There is a file on the `config` folder called 'config.json.sample'. Rename it to config.json and change the username, password and database information with your database information before you run the script, or a error message will be shown explaining about this json file.
 
 
 4. start.rb
@@ -106,7 +106,7 @@ The sql file will, by default, be stored in a directory named "sql". If an error
 Database structure
 ==========================
 
-To create the database, we included a mysql script on the project. It is located into the file database_script.sql
+To create the database, we included a mysql script on the project. It is called database_script.sql and is located on the `db` folder.
 
 
 Database first load
