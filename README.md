@@ -14,6 +14,18 @@ Before starting
 
 Make sure you have gsutil installed and configured in your machine. To do that, follow the steps in https://cloud.google.com/storage/docs/gsutil, or, to be more precise, in https://cloud.google.com/storage/docs/gsutil_install
 
+Easy Run
+================
+
+To make a long story short:
+
+- To fetch data from a specific date and import them into the database, run:
+`ID=12345678901234567890 YEAR=2015 MONTH=7 ruby start.rb`
+
+- Instead of picking a date, you can load the database with all data provided by Google by running:
+`ID=12345678901234567890 ruby database_load.rb`
+
+Now, to understand how things work and what other options you have, just read on.
 
 
 The project

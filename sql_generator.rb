@@ -4,14 +4,12 @@ require 'fileutils'
 require_relative 'models/colors'
 require_relative 'models/product'
 require_relative 'models/sale'
+require_relative 'models/file_writer'
 
 DEFAULT_DIRECTORY = './reports'
 REPORTS = ['installs']
-INSERT_IGNORE = 'INSERT IGNORE INTO %{table_name} (%{columns}) VALUES (%{values});'
-INSERT = 'INSERT INTO %{table_name} (%{columns}) VALUES (%{values});'
-UPDATE = 'UPDATE %{table_name} SET icon_path = %{icon_path}, active = %{active}, last_version = %{version}, last_update = %{last_update} WHERE package_name = %{package_name};'
-DEACTIVATE = 'UPDATE %{table_name} SET active = false WHERE package_name = %{package_name};'
-DELETE = 'DELETE FROM %{table_name} where YEAR(collected_date) = %{year} and MONTH(collected_date) = %{month};'
+
+DELETE = 'DELETE s.* FROM %{sales_table_name} s INNER JOIN %{products_table_name} p on s.product_id = p.id where YEAR(collected_date) = %{year} and MONTH(collected_date) = %{month} and p.store = "google";'
 
 OUTPUT_FILE_NAME = Time.now.strftime('%Y%m%d%H%M%S%L')
 
@@ -53,99 +51,57 @@ def format_values(values)
   end.join(', ')
 end
 
-def write_to_log(error)
-  directory = './logs'
-  filename = "#{directory}/#{OUTPUT_FILE_NAME}.log"
+def write_extra_data_to_file(products)
+  queries = ["-- UPDATE PRODUCTS REPORT"]
 
-  unless File.directory?(directory)
-    FileUtils::mkdir_p(directory)
-  end
-
-  file_mode = File.exists?(filename) ? 'a+' : 'w+'
-  File.open(filename, file_mode) { |file| file.write("#{error}\n") }
-end
-
-def write_to_file(inserts)
-  directory = './sql'
-  filename = "#{directory}/#{OUTPUT_FILE_NAME}.sql"
-
-  unless File.directory?(directory)
-    puts "#{"[Warning]".gray}: #{directory} did not exist and was created"
-    FileUtils::mkdir_p(directory)
-  end
-
-  file_mode = File.exists?(filename) ? 'a' : 'w'
-  open(filename, "#{file_mode}:UTF-8") { |file| file.write(inserts.join("\n")) }
-end
-
-def write_extra_data_to_file(data)
-  updates = ["-- UPDATE PRODUCTS REPORT"]
-
-  data.each do |product|
-    if product[:active]
-      updates << UPDATE % {
-        table_name: Product.table,
-        icon_path: "'#{product[:icon_path]}'",
-        active: "#{product[:active]}",
-        version: "'#{product[:version]}'",
-        last_update: "'#{product[:last_update]}'",
-        package_name: "'#{product[:package_name]}'"
-      }
+  products.each do |product|
+    if product.active
+      queries << product.update_script
     else
-      updates << DEACTIVATE % {
-        table_name: Product.table,
-        package_name: "'#{product[:package_name]}'"
-      }
+      queries << product.deactivate_script
     end
   end
 
-  updates << " \n "
-  write_to_file(updates)
+  queries << " \n "
+  FileWriter.script(OUTPUT_FILE_NAME, queries)
 end
 
 def import_products(imported_file_name, columns, lines)
-  inserts = ["-- PRODUCTS REPORT: #{imported_file_name}"]
-  data = []
+  queries = ["-- PRODUCTS REPORT: #{imported_file_name}"]
+  products = []
 
   lines.each do |line|
     line.encode!('UTF-8', 'UTF-16LE', invalid: :replace, undef: :replace, replace: '')
-
-    item = {}
     values = line.split(',')
 
     product = Product.new(columns, values)
 
     if values.length > 1
-      inserts << INSERT_IGNORE % { table_name: Product.table, columns: product.columns, values: product.values }
+      queries << product.insert_script
 
       unless Product.crawled_products.include?(product.package_name)
-        data << product.crawl_data
+        products << product.crawl_data
         Product.crawled_products << product.package_name
       end
     end
   end
 
-  inserts << " \n "
-  write_to_file(inserts)
-  write_extra_data_to_file(data)
+  queries << " \n "
+  FileWriter.script(OUTPUT_FILE_NAME, queries)
+  write_extra_data_to_file(products)
 end
 
 def import_sales(imported_file_name, columns, lines)
-  inserts = ["-- SALES REPORT #{imported_file_name}"]
+  queries = ["-- SALES REPORT #{imported_file_name}"]
 
   lines.each do |line|
-    item = {}
     values = line.split(',')
-
     sale = Sale.new(columns, values)
-
-    if values.length > 1
-      inserts << INSERT % { table_name: Sale.table, columns: sale.columns, values: sale.values }
-    end
+    queries << sale.insert_script if values.length > 1
   end
 
-  inserts << " \n "
-  write_to_file(inserts)
+  queries << " \n "
+  FileWriter.script(OUTPUT_FILE_NAME, queries)
 end
 
 def update_field_sum(field)
@@ -160,13 +116,13 @@ def update_field_sum(field)
 end
 
 def calculate_related_fields
-  inserts = ["-- RELATED VALUES"]
+  queries = ["-- RELATED VALUES"]
 
-  inserts << update_field_sum('downloads')
-  inserts << update_field_sum('revenue')
-  inserts << update_field_sum('updates')
-  inserts << " \n "
-  write_to_file(inserts)
+  queries << update_field_sum('downloads')
+  queries << update_field_sum('revenue')
+  queries << update_field_sum('updates')
+  queries << " \n "
+  FileWriter.script(OUTPUT_FILE_NAME, queries)
 end
 
 def import_csv(file)
@@ -182,11 +138,11 @@ def import_csv(file)
     File.delete(file)
   rescue => e
    puts "* #{imported_file_name.light_blue} #{dots} #{"error".red}"
-   write_to_log("#{e} \n #{e.backtrace}")
+   FileWriter.log(OUTPUT_FILE_NAME, "#{e} \n #{e.backtrace}")
 end
 
 def delete_old_sales_data(directory)
-  lines = ['-- DELETE OLD SALES DATA']
+  queries = ['-- DELETE OLD SALES DATA']
   dates = []
 
   REPORTS.each do |report|
@@ -197,15 +153,16 @@ def delete_old_sales_data(directory)
   end
 
   dates.uniq.each do |date|
-    lines << DELETE % {
-      table_name: Sale.table,
+    queries << DELETE % {
+      sales_table_name: Sale.table,
+      products_table_name: Product.table,
       year: date.year,
       month: date.month
     }
   end
 
-  lines << "\n"
-  write_to_file(lines)
+  queries << "\n"
+  FileWriter.script(OUTPUT_FILE_NAME, queries)
 end
 
 def start
